@@ -1,0 +1,9 @@
+# Anti-pattern : image lourde, pas de multi-stage, root, pas de healthcheck
+FROM ubuntu:22.04
+RUN apt-get update
+RUN apt-get install -y python3 python3-pip curl wget git
+COPY . /app
+WORKDIR /app
+RUN pip3 install -r requirements.txt
+EXPOSE 5000
+CMD ["python3", "src/app.py"]
