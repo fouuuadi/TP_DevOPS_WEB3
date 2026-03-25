@@ -1,0 +1,51 @@
+# Playbook Nginx avec handlers -- installe et configure nginx sur les webservers
+---
+- name: Installer et configurer Nginx
+  hosts: webservers
+  become: true
+
+  handlers:
+    - name: restart nginx
+      shell: nginx -g 'daemon off;' &
+      async: 10
+      poll: 0
+
+  tasks:
+    - name: Installer Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Configurer le site
+      copy:
+        content: |
+          server {
+              listen 80 default_server;
+              root /var/www/html;
+              index index.html;
+
+              location / {
+                  try_files $uri $uri/ =404;
+              }
+
+              location /health {
+                  return 200 '{"status": "ok"}';
+                  add_header Content-Type application/json;
+              }
+          }
+        dest: /etc/nginx/sites-available/default
+      notify: restart nginx
+
+    - name: Deployer la page d'accueil
+      copy:
+        content: |
+          <!DOCTYPE html>
+          <html>
+          <head><title>Quotes API</title></head>
+          <body>
+            <h1>Serveur configure par Ansible</h1>
+            <p>Host: {{ ansible_hostname }}</p>
+          </body>
+          </html>
+        dest: /var/www/html/index.html

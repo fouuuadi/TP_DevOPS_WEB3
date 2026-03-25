@@ -1,0 +1,11 @@
+# Inventaire Ansible -- on utilise la connexion docker pour cibler les conteneurs
+all:
+  vars:
+    ansible_connection: docker
+  children:
+    webservers:
+      hosts:
+        ansible-node1:
+    appservers:
+      hosts:
+        ansible-node2:

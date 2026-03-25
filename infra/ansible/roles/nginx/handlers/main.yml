@@ -1,0 +1,5 @@
+---
+- name: restart nginx
+  shell: nginx -g 'daemon off;' &
+  async: 10
+  poll: 0

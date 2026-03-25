@@ -1,0 +1,10 @@
+---
+- name: Mettre a jour le cache apt
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Installer les paquets de base
+  apt:
+    name: "{{ base_packages }}"
+    state: present

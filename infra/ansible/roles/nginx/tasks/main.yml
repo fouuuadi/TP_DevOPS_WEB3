@@ -1,0 +1,16 @@
+---
+- name: Installer Nginx
+  apt:
+    name: nginx
+    state: present
+
+- name: Configurer le site
+  template:
+    src: default.conf.j2
+    dest: /etc/nginx/sites-available/default
+  notify: restart nginx
+
+- name: Deployer la page d'accueil
+  template:
+    src: index.html.j2
+    dest: /var/www/html/index.html

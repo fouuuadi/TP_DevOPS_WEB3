@@ -1,0 +1,13 @@
+# Playbook principal -- utilise les roles pour configurer les noeuds
+---
+- name: Configuration commune
+  hosts: all
+  become: true
+  roles:
+    - base
+
+- name: Serveurs web
+  hosts: webservers
+  become: true
+  roles:
+    - nginx

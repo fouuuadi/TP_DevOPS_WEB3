@@ -1,0 +1,23 @@
+# Conteneurs Ubuntu qui simulent des serveurs cibles pour Ansible
+# On installe python3 et sudo au boot car Ansible en a besoin pour fonctionner
+
+services:
+  node1:
+    image: ubuntu:22.04
+    container_name: ansible-node1
+    command: >
+      bash -c "apt-get update && apt-get install -y python3 sudo && sleep infinity"
+    networks:
+      - ansible-net
+
+  node2:
+    image: ubuntu:22.04
+    container_name: ansible-node2
+    command: >
+      bash -c "apt-get update && apt-get install -y python3 sudo && sleep infinity"
+    networks:
+      - ansible-net
+
+networks:
+  ansible-net:
+    name: ansible-net
