@@ -1,5 +1,5 @@
 # Pipeline CI/CD multi-stages pour l'API quotes
-# 4 stages : test -> build -> security scan -> deploy
+# test -> build (reusable) -> security scan -> staging -> production
 
 name: CI/CD Pipeline
 
@@ -34,20 +34,13 @@ jobs:
           name: test-output-py-${{ matrix.python-version }}
           path: app/test-output.txt
 
-  # Stage 2 : Build image Docker
+  # Stage 2 : Build via le workflow reutilisable
   build:
     needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v5
-        with:
-          context: ./app
-          push: false
-          tags: quotes-api:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+    uses: ./.github/workflows/reusable-docker.yml
+    with:
+      image-name: quotes-api
+      context: ./app
 
   # Stage 3 : Scan de securite avec Trivy
   security:
@@ -64,11 +57,24 @@ jobs:
           exit-code: "1"
           format: "table"
 
-  # Stage 4 : Deploy (simule pour le moment)
-  deploy:
+  # Stage 4 : Deploy staging (auto, pas de protection)
+  deploy-staging:
     needs: [build, security]
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - run: echo "Deploying ${{ github.sha }} to staging..."
+
+  # Stage 5 : Deploy production (avec protection requise)
+  deploy-production:
+    needs: deploy-staging
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - run: echo "Deploying version ${{ github.sha }}..."
+      - name: Use secrets
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          echo "Deploying ${{ github.sha }} to production..."
+          echo "DB_PASSWORD length: ${#DB_PASSWORD}"
