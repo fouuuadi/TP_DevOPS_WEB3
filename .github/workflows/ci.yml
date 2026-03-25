@@ -1,0 +1,74 @@
+# Pipeline CI/CD multi-stages pour l'API quotes
+# 4 stages : test -> build -> security scan -> deploy
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Stage 1 : Tests unitaires sur plusieurs versions Python
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+          cache-dependency-path: app/requirements.txt
+      - run: cd app && pip install -r requirements.txt
+      - name: Run tests
+        run: |
+          cd app
+          python -m pytest test/ -v 2>&1 | tee test-output.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-output-py-${{ matrix.python-version }}
+          path: app/test-output.txt
+
+  # Stage 2 : Build image Docker
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./app
+          push: false
+          tags: quotes-api:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Stage 3 : Scan de securite avec Trivy
+  security:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan application files
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: "fs"
+          scan-ref: "app/"
+          severity: "HIGH,CRITICAL"
+          exit-code: "1"
+          format: "table"
+
+  # Stage 4 : Deploy (simule pour le moment)
+  deploy:
+    needs: [build, security]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - run: echo "Deploying version ${{ github.sha }}..."
