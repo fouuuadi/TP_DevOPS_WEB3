@@ -1,0 +1,12 @@
+# Configuration applicative injectee dans les pods via envFrom
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: devops-training
+data:
+  PORT: "5000"
+  DB_HOST: "postgres-svc"
+  DB_PORT: "5432"
+  DB_NAME: "appdb"
+  LOG_LEVEL: "info"

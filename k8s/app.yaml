@@ -1,0 +1,66 @@
+# Deployment de l'API quotes avec 3 replicas + Service ClusterIP
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quotes-api
+  namespace: devops-training
+  labels:
+    app: quotes-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: quotes-api
+  template:
+    metadata:
+      labels:
+        app: quotes-api
+    spec:
+      containers:
+        - name: app
+          image: quotes-api:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: app-secrets
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quotes-api-svc
+  namespace: devops-training
+spec:
+  selector:
+    app: quotes-api
+  ports:
+    - port: 80
+      targetPort: 5000
+  type: ClusterIP
